@@ -9,7 +9,7 @@ from io import BytesIO
 import json
 from settings import ROOT_DIR, env
 from pathlib import Path
-from api_lookups.models import LkpCountry, LkpState
+from api_lookups.models import LkpCountry, LkpState, LkpDistrict
 from api_layers.exceptions import NoRasterDataException, RasterFileNotFoundException
 
 
@@ -39,11 +39,22 @@ class GeoProc:
         if self.admin_level == "state":
             state_obj = self.db.query(LkpState).filter(LkpState.id == self.admin_level_id).first()
             return [self.tcase(state_obj.state), state_obj.country.country]
+        if self.admin_level == "district":
+            dist_obj = self.db.query(LkpDistrict).filter(LkpDistrict.id == self.admin_level_id).first()
+            return [self.tcase(dist_obj.district), self.tcase(dist_obj.state.state), dist_obj.country.country]
 
 
     def prep_geojson(self):
-        geojson_file = self.geojson_data_dir / self.geojson_index[self.admin_level]
-        gdf = gpd.read_file(geojson_file)
+        if self.admin_level != "district":
+            geojson_file = self.geojson_data_dir / self.geojson_index[self.admin_level]
+            gdf = gpd.read_file(geojson_file)
+        if self.admin_level == "district":
+            dist_obj = self.db.query(LkpDistrict).get(self.admin_level_id)
+            state_geojson_file = self.geojson_data_dir / f"sa_states/state_{dist_obj.state_id}.geojson"
+            gdf = gpd.read_file(state_geojson_file)
+            gdf = gdf[gdf["district"] == dist_obj.district] # Reliable to go by district name?
+            if gdf.empty:
+                raise ValueError(f"No district found with ID {self.admin_level_id} in {state_geojson_file}")
         return {
             "region": self.get_region(),
             "bbox": gdf.total_bounds.tolist(),
