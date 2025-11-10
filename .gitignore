@@ -1,0 +1,6 @@
+**/__pycache__
+/venv
+.env
+/_datautils
+models_derived.py
+quick_copy.txt

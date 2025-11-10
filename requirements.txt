@@ -1,0 +1,16 @@
+cryptography
+fastapi
+geopandas
+gunicorn
+inflect
+matplotlib
+openpyxl
+pandas
+pillow
+pydantic
+pymysql
+python-dotenv
+rasterio
+sqlalchemy
+sqlacodegen
+uvicorn

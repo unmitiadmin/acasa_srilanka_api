@@ -1,0 +1,1 @@
+from .climate import TblStAnalyticsPrec, TblStAnalyticsTmax, TblStAnalyticsTmin
