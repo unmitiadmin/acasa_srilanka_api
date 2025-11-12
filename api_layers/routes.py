@@ -65,31 +65,6 @@ class LayerRouter:
         return {"success": 1, "data": data}
 
 
-    # async def geotiff(self, request: Request, db: Session = Depends(get_db)):
-    #     request_body = await request.json()
-    #     proc = GeoProc(
-    #         db=db,
-    #         admin_level=request_body.get("admin_level"),
-    #         admin_level_id=request_body.get("admin_level_id"),
-    #         source_file=request_body.get("source_file"),
-    #         color_ramp=request_body.get("color_ramp"),
-    #     )
-    #     memfile = proc.prep_geotiff()  # in-memory BytesIO
-    #     selected_region = "_".join(proc.get_region())
-    #     tif_file_name = str(request_body.get("source_file")).split("/")[-1]
-    #     download_filename = f"{selected_region}_{tif_file_name}".replace(" ", "_")
-    #     # send all bytes at once, no chunking needed for ~2MB file
-    #     return StreamingResponse(
-    #         iter([memfile.getvalue()]),
-    #         media_type="image/tiff",
-    #         headers={
-    #             "Content-Disposition": f'inline; filename="{download_filename}.tif"',
-    #             "Access-Control-Expose-Headers": "Content-Disposition",
-    #             "X-Accel-Buffering": "no"
-    #         },
-    #     )
-
-
     async def geotiff(self, request: Request, db: Session = Depends(get_db)):
         request_body = await request.json()
         proc = GeoProc(
@@ -159,6 +134,7 @@ class LayerRouter:
             change_metric_id=request_body.get("change_metric_id"),
             country_id=request_body.get("country_id"),
             state_id=request_body.get("state_id"),
+            district_id=request_body.get("district_id"),
             layer_id=request_body.get("layer_id"),
         ).get_legend()
         return {"success": 1, "data": data}
@@ -187,6 +163,7 @@ class LayerRouter:
             change_metric_id=request_body.get("change_metric_id"),
             country_id=request_body.get("country_id"),
             state_id=request_body.get("state_id"),
+            district_id=request_body.get("district_id"),
             layer_id=request_body.get("layer_id"),
         )
         memfile_obj = layer_data.get_table()

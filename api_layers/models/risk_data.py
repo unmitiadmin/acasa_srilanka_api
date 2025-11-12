@@ -5,8 +5,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from api_lookups.models import (
-    LkpClimateScenario, LkpCommodity, LkpCountry, LkpState,
-    LkpRiskColor, LkpIntensityMetric, LkpChangeMetric, LkpVisualizationScale
+    LkpClimateScenario, LkpCommodity, LkpCountry, LkpState, LkpDistrict,
+    LkpRiskColor, LkpIntensityMetric, LkpChangeMetric, LkpVisualizationScale,
 )
 
 class TblRiskData(Base):
@@ -16,6 +16,7 @@ class TblRiskData(Base):
         ForeignKeyConstraint(['climate_scenario_id'], ['lkp_climate_scenario.id'], name='tbl_risk_data_ibfk_4'),
         ForeignKeyConstraint(['commodity_id'], ['lkp_commodity.id'], name='tbl_risk_data_ibfk_1'),
         ForeignKeyConstraint(['country_id'], ['lkp_country.id'], name='tbl_risk_data_ibfk_6'),
+        ForeignKeyConstraint(['district_id'], ['lkp_district.id'], name='tbl_risk_data_ibfk_9'),
         ForeignKeyConstraint(['intensity_metric_id'], ['lkp_intensity_metric.id'], name='tbl_risk_data_ibfk_2'),
         ForeignKeyConstraint(['risk_suffix_id'], ['lkp_risk_color.id'], name='tbl_risk_data_ibfk_8'),
         ForeignKeyConstraint(['state_id'], ['lkp_state.id'], name='tbl_risk_data_ibfk_7'),
@@ -39,6 +40,7 @@ class TblRiskData(Base):
     change_metric_id: Mapped[Optional[int]] = mapped_column(Integer)
     country_id: Mapped[Optional[int]] = mapped_column(Integer)
     state_id: Mapped[Optional[int]] = mapped_column(Integer)
+    district_id: Mapped[Optional[int]] = mapped_column(Integer)
     risk_suffix_id: Mapped[Optional[int]] = mapped_column(Integer)
     # fields - commodity values
     c_vlow: Mapped[Optional[float]] = mapped_column(Float)
@@ -59,6 +61,7 @@ class TblRiskData(Base):
     climate_scenario: Mapped[Optional['LkpClimateScenario']] = relationship('LkpClimateScenario')
     commodity: Mapped[Optional['LkpCommodity']] = relationship('LkpCommodity')
     country: Mapped[Optional['LkpCountry']] = relationship('LkpCountry')
+    district: Mapped[Optional['LkpDistrict']] = relationship('LkpDistrict')
     intensity_metric: Mapped[Optional['LkpIntensityMetric']] = relationship('LkpIntensityMetric')
     risk_suffix: Mapped[Optional['LkpRiskColor']] = relationship('LkpRiskColor')
     state: Mapped[Optional['LkpState']] = relationship('LkpState')

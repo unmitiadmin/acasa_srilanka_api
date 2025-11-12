@@ -1,7 +1,7 @@
 import re
 from api_layers.models import TblImpactData
 from api_lookups.models import LkpCommodity, LkpImpactColor, LkpImpact, LkpClimateScenario, \
-    LkpCountry, LkpState, LkpIntensityMetric, LkpChangeMetric
+    LkpCountry, LkpState, LkpDistrict, LkpIntensityMetric, LkpChangeMetric
 from api_layers.exceptions import LayerDataException
 import pandas as pd
 from io import BytesIO
@@ -26,6 +26,7 @@ class ImpactData:
         self.change_metric_id = kwargs.get("change_metric_id")
         self.country_id = kwargs.get("country_id")
         self.state_id = kwargs.get("state_id")
+        self.district_id = kwargs.get("district_id")
         self.layer_id = kwargs.get("layer_id")
         # derivative objects
         self.impact_obj = self.db.query(LkpImpact).filter(LkpImpact.id == self.layer_id).first()
@@ -88,6 +89,7 @@ class ImpactData:
             TblImpactData.change_metric_id == self.change_metric_id,
             TblImpactData.country_id == self.country_id,
             TblImpactData.state_id == self.state_id,
+            TblImpactData.district_id == self.district_id,
             TblImpactData.impact_optcode_id == self.impact_obj.id,
         ]
         map_data = self.db.query(TblImpactData).filter(*filters).first()
@@ -144,18 +146,24 @@ class ImpactData:
         map_data = self.db.query(TblImpactData).filter(*filters)
         if not map_data:
             raise LayerDataException("No data available for the selections")
-        if self.country_id is None and self.state_id is None:
-            # South Asia by all countries
-            selected_location = "South Asia"
+        if self.country_id is None and self.state_id is None and self.district_id is None:
+            # Sri Lanka
+            selected_location = "Sri Lanka"
             loc_filter = [TblImpactData.state_id == None]
-        if self.country_id is not None and self.state_id is None:
+        if self.country_id is not None and self.state_id is None and self.district_id is None:
             # Country only - by states
             selected_location = f"{self.db.query(LkpCountry).get(self.country_id).country}".replace(" ", "_")
             loc_filter = [TblImpactData.country_id == self.country_id,]
-        if self.country_id is not None and self.state_id is not None:
+        if self.country_id is not None and self.state_id is not None and self.district_id is None:
+            # Country - all states and districts
             state_obj = self.db.query(LkpState).get(self.state_id)
             selected_location = f"{state_obj.country.country}_{state_obj.state}".replace(" ", "_")
             loc_filter = [TblImpactData.country_id == self.country_id, TblImpactData.state_id == self.state_id]
+        if self.country_id is not None and self.state_id is not None and self.district_id is None:
+            # State - all districts
+            dist_obj = self.db.query(LkpDistrict).get(self.district_id)
+            selected_location = f"{dist_obj.country.country}_{dist_obj.state.state}_{dist_obj.district}".replace(" ", "_")
+            loc_filter = [TblImpactData.country_id == self.country_id, TblImpactData.state_id == self.state_id, TblImpactData.district_id == self.district_id]
         map_data = map_data.filter(*loc_filter)
         rows = [{
             "Commodity": row.commodity.commodity,

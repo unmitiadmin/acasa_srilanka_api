@@ -1,6 +1,6 @@
 import re
 from api_layers.models import TblRiskData
-from api_lookups.models import LkpCommodity, LkpRisk, LkpRiskColor, LkpCountry, LkpState, \
+from api_lookups.models import LkpCommodity, LkpRisk, LkpRiskColor, LkpCountry, LkpState, LkpDistrict, \
     LkpChangeMetric, LkpIntensityMetric
 from api_layers.exceptions import LayerDataException
 import pandas as pd
@@ -27,6 +27,7 @@ class RiskData:
         self.change_metric_id = kwargs.get("change_metric_id")
         self.country_id = kwargs.get("country_id")
         self.state_id = kwargs.get("state_id")
+        self.district_id = kwargs.get("district_id")
         self.layer_id = kwargs.get("layer_id")
         # derivative objects
         self.risk_obj = self.db.query(LkpRisk).filter(LkpRisk.id == self.layer_id).first()
@@ -101,6 +102,7 @@ class RiskData:
             TblRiskData.change_metric_id == self.change_metric_id,
             TblRiskData.country_id == self.country_id,
             TblRiskData.state_id == self.state_id,
+            TblRiskData.district_id == self.district_id,
             TblRiskData.risk_suffix_id == self.risk_suffix_obj.id,
         ]
         map_data = self.db.query(TblRiskData).filter(*filters).first()
@@ -174,18 +176,24 @@ class RiskData:
         map_data = self.db.query(TblRiskData).filter(*filters)
         if not map_data:
             raise LayerDataException("No data available for the selections")
-        if self.country_id is None and self.state_id is None:
-            # South Asia by all countries
-            selected_location = "South Asia"
+        if self.country_id is None and self.state_id is None and self.district_id is None:
+            # Sri Lanka
+            selected_location = "Sri Lanka"
             loc_filter = [TblRiskData.state_id == None]
-        if self.country_id is not None and self.state_id is None:
+        if self.country_id is not None and self.state_id is None and self.district_id is None:
             # Country only - by states
             selected_location = f"{self.db.query(LkpCountry).get(self.country_id).country}".replace(" ", "_")
             loc_filter = [TblRiskData.country_id == self.country_id,]
-        if self.country_id is not None and self.state_id is not None:
+        if self.country_id is not None and self.state_id is not None and self.district_id is None:
+            # Country - all states and districts
             state_obj = self.db.query(LkpState).get(self.state_id)
             selected_location = f"{state_obj.country.country}_{state_obj.state}".replace(" ", "_")
             loc_filter = [TblRiskData.country_id == self.country_id, TblRiskData.state_id == self.state_id]
+        if self.country_id is not None and self.state_id is not None and self.district_id is not None:
+            # Specific district
+            dist_obj = self.db.query(LkpDistrict).get(self.district_id)
+            selected_location = f"{dist_obj.country.country}_{dist_obj.state.state}_{dist_obj.district}".replace(" ", "_")
+            loc_filter = [TblRiskData.country_id == self.country_id, TblRiskData.state_id == self.state_id, TblRiskData.district_id == self.district_id]
         map_data = map_data.filter(*loc_filter)
         rows = [{
             "Commodity": row.commodity.commodity if row.commodity and self.analysis_scope_id == 1 else "Regional",
@@ -195,8 +203,9 @@ class RiskData:
             "Year": row.year or "Baseline",
             "Hazard": row.risk_suffix.suffix,
             "Metric": row.change_metric.metric,
-            "Country": row.country.country if row.country else "South Asia",
-            "State": row.state.state if row.state else ("Total Country" if row.country else "All countries"),
+            "Country": row.country.country,
+            "State": row.state.state if row.state else "Total Country",
+            "District": row.district.district if row.district else ("Total State" if row.state else "Total Country"),
             "c_vlow": row.c_vlow,
             "c_low": row.c_low,
             "c_med": row.c_med,

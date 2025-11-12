@@ -2,7 +2,7 @@ import re
 from api_layers.models import TblAdaptCropData, TblAdaptLivestockData, TblImpactData
 from api_lookups.models import LkpCommodity, LkpClimateScenario, \
     LkpImpactColor, LkpAdapt, LkpAdaptCropColor, LkpAdaptLivestockColor, \
-    LkpAdaptCropOptcode, LkpCountry, LkpState, LkpIntensityMetric, LkpChangeMetric
+    LkpAdaptCropOptcode, LkpCountry, LkpState, LkpDistrict, LkpIntensityMetric, LkpChangeMetric
 from api_layers.exceptions import LayerDataException
 import pandas as pd
 from io import BytesIO
@@ -28,6 +28,7 @@ class AdaptationData:
         self.change_metric_id = kwargs.get("change_metric_id")
         self.country_id = kwargs.get("country_id")
         self.state_id = kwargs.get("state_id")
+        self.district_id = kwargs.get("district_id")
         self.layer_id = kwargs.get("layer_id")
         # derivative objects
         self.climate_scenario_obj = self.db.query(LkpClimateScenario).get(self.climate_scenario_id)
@@ -135,6 +136,7 @@ class AdaptationData:
                     TblImpactData.change_metric_id == self.change_metric_id,
                     TblImpactData.country_id == self.country_id,
                     TblImpactData.state_id == self.state_id,
+                    TblImpactData.district_id == self.district_id,
                     TblImpactData.impact_optcode_id == 1, # Productivity X Baseline - one-off exemption
                 ]
                 map_data = self.db.query(TblImpactData).filter(*filters).first()
@@ -150,6 +152,7 @@ class AdaptationData:
                     TblAdaptCropData.change_metric_id == self.change_metric_id,
                     TblAdaptCropData.country_id == self.country_id,
                     TblAdaptCropData.state_id == self.state_id,
+                    TblAdaptCropData.district_id == self.district_id,
                     TblAdaptCropData.adaptation_prefix_id == self.adaptation_croptab_id,
                     TblAdaptCropData.adaptation_optcode_id == csufx_obj.id
                 ]
@@ -167,6 +170,7 @@ class AdaptationData:
                 TblAdaptLivestockData.change_metric_id == self.change_metric_id,
                 TblAdaptLivestockData.country_id == self.country_id,
                 TblAdaptLivestockData.state_id == self.state_id,
+                TblAdaptLivestockData.district_id == self.district_id,
                 TblAdaptLivestockData.adaptation_optcode_id == lsufx_obj.id
             ]
             map_data = self.db.query(TblAdaptLivestockData).filter(*filters).first()
@@ -295,18 +299,22 @@ class AdaptationData:
         if not map_data:
             raise LayerDataException("No data available for the selections")
         # Location fields
-        if self.country_id is None and self.state_id is None:
-            # South Asia by all countries
-            selected_location = "South Asia"
+        if self.country_id is None and self.state_id is None and self.district_id is None:
+            # Sri Lanka
+            selected_location = "Sri Lanka"
             loc_filter = [TblAdaptData.state_id == None]
-        if self.country_id is not None and self.state_id is None:
+        if self.country_id is not None and self.state_id is None and self.district_id is None:
             # Country only - by states
             selected_location = f"{self.db.query(LkpCountry).get(self.country_id).country}".replace(" ", "_")
             loc_filter = [TblAdaptData.country_id == self.country_id]
-        if self.country_id is not None and self.state_id is not None:
+        if self.country_id is not None and self.state_id is not None and self.district_id is None:
             state_obj = self.db.query(LkpState).get(self.state_id)
             selected_location = f"{state_obj.country.country}_{state_obj.state}".replace(" ", "_")
             loc_filter = [TblAdaptData.country_id == self.country_id, TblAdaptData.state_id == self.state_id]
+        if self.country_id is not None and self.state_id is not None and self.district_id is not None:
+            dist_obj = self.db.query(LkpDistrict).get(self.district_id)
+            selected_location = f"{dist_obj.country.country}_{dist_obj.state.state}_{dist_obj.district}".replace(" ", "_")
+            loc_filter = [TblAdaptData.country_id == self.country_id, TblAdaptData.state_id == self.state_id, TblAdaptData.district_id == self.district_id]
         map_data = map_data.filter(*loc_filter)
         return selected_location, map_data
 
