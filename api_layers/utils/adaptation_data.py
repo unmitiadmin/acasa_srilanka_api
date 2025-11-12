@@ -198,9 +198,9 @@ class AdaptationData:
             "header_bold_part": self.adap_obj.adaptation,
             "footer_text": None,
         }
-        result["population_text"] = "Number of rural farm households, million (M)"
+        result["population_text"] = "Number of rural farm households"
         result["commodity_text"] = (
-            f"{self.commodity_obj.commodity} area, million hectare (MHa)" if self.commodity_obj.type.type == "Crops"
+            f"{self.commodity_obj.commodity} area, hectare (Ha)" if self.commodity_obj.type.type == "Crops"
             else f"{self.commodity_obj.commodity}" if self.commodity_obj.type.type == "Livestock"
             else None
         )
